@@ -1,3 +1,4 @@
+# ui/main_ui.py
 import tkinter as tk
 from tkinter import ttk
 from ui.preview import Preview
@@ -9,7 +10,6 @@ from ui.audio import AudioSettings
 from ui.emojis import EmojiSystem
 from ui.output import OutputVideo
 from ui.footer import Footer
-
 
 class EditorUI(tk.Tk):
     def __init__(self):
@@ -53,7 +53,6 @@ class EditorUI(tk.Tk):
         scrollbar.pack(side="right", fill="y")
 
         # ===== SCROLL COM MOUSE =====
-# ===== SCROLL COM MOUSE (funciona em Windows/Linux/macOS) =====
         def _on_mousewheel(event):
             if event.num == 4:           # Linux scroll up
                 canvas.yview_scroll(-1, "units")
@@ -62,21 +61,20 @@ class EditorUI(tk.Tk):
             else:                        # Windows / macOS
                 canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-            # Bind somente quando mouse estiver sobre o canvas
         canvas.bind("<Enter>", lambda e: (
-        canvas.bind_all("<MouseWheel>", _on_mousewheel),
-        canvas.bind_all("<Button-4>", _on_mousewheel),
-        canvas.bind_all("<Button-5>", _on_mousewheel)
+            canvas.bind_all("<MouseWheel>", _on_mousewheel),
+            canvas.bind_all("<Button-4>", _on_mousewheel),
+            canvas.bind_all("<Button-5>", _on_mousewheel)
         ))
         canvas.bind("<Leave>", lambda e: (
-        canvas.unbind_all("<MouseWheel>"),
-        canvas.unbind_all("<Button-4>"),
-        canvas.unbind_all("<Button-5>")
+            canvas.unbind_all("<MouseWheel>"),
+            canvas.unbind_all("<Button-4>"),
+            canvas.unbind_all("<Button-5>")
         ))
 
         # ================== MÓDULOS ==================
-        Preview(scroll_frame)
-        VideoControls(scroll_frame, self.processar_pasta_var)
+        preview = Preview(scroll_frame)  # Apenas o canvas do preview
+        VideoControls(scroll_frame, self.processar_pasta_var, preview.canvas)  # Botão seleciona vídeo
         VideoBorders(scroll_frame)
         Subtitles(scroll_frame)
         EmojiSystem(scroll_frame)

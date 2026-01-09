@@ -1,20 +1,18 @@
 import tkinter as tk
 from tkinter import ttk
+from modules.video_selector import VideoSelector
 
 class VideoControls(ttk.LabelFrame):
-    def __init__(self, parent, processar_pasta_var):
+    def __init__(self, parent, processar_pasta_var, preview_canvas):
         super().__init__(parent, text="Controles de Vídeo")
         self.pack(fill="x", pady=10)
 
-        ttk.Button(self, text="Selecionar Vídeo").pack(side="left", padx=10, pady=10)
-        ttk.Checkbutton(self, text="Processar toda pasta", variable=processar_pasta_var).pack(side="left", padx=10, pady=10)
-import tkinter as tk
-from tkinter import ttk
+        # Botão de selecionar vídeo
+        VideoSelector(self, preview_canvas)
 
-class VideoControls(ttk.LabelFrame):
-    def __init__(self, parent, processar_pasta_var):
-        super().__init__(parent, text="Controles de Vídeo")
-        self.pack(fill="x", pady=10)
-
-        ttk.Button(self, text="Selecionar Vídeo").pack(side="left", padx=10, pady=10)
-        ttk.Checkbutton(self, text="Processar toda pasta", variable=processar_pasta_var).pack(side="left", padx=10, pady=10)
+        # Checkbox de processar toda a pasta
+        ttk.Checkbutton(
+            self,
+            text="Processar toda pasta",
+            variable=processar_pasta_var
+        ).pack(side="left", padx=10, pady=10)

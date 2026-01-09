@@ -1,10 +1,11 @@
+# ui/preview.py
 import tkinter as tk
-from tkinter import ttk
+from modules.video_selector import VideoSelector
 
-class Preview(ttk.LabelFrame):
+class Preview:
     def __init__(self, parent):
-        super().__init__(parent, text="Preview 9:16 - Arraste as legendas aqui")
-        self.pack(fill="x", pady=10)
+        preview_group = tk.LabelFrame(parent, text="Preview 9:16")
+        preview_group.pack(fill="x", pady=10)
 
-        self.canvas = tk.Canvas(self, width=360, height=640, bg="black")
-        self.canvas.pack(padx=20, pady=20)
+        self.canvas = tk.Canvas(preview_group, width=360, height=640, bg="black")
+        self.canvas.pack(padx=10, pady=10)
