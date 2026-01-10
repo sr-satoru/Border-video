@@ -84,8 +84,8 @@ class EditorUI(tk.Tk):
         
         subtitles_ui = Subtitles(scroll_frame, subtitle_manager, emoji_manager, video_controls, video_borders)
         
-        AudioSettings(scroll_frame)
-        OutputVideo(scroll_frame, video_controls, video_borders, subtitle_manager, emoji_manager)
+        audio_settings = AudioSettings(scroll_frame)
+        OutputVideo(scroll_frame, video_controls, video_borders, subtitle_manager, emoji_manager, audio_settings)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ class AudioSettings(ttk.LabelFrame):
         self.audio_folder_path = tk.StringVar()
 
         ttk.Checkbutton(self, text="Remover Áudio", variable=self.remove_audio_var).grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        ttk.Checkbutton(self, text="Usar áudios da pasta", variable=self.use_folder_audio_var).grid(row=1, column=0, sticky="w", padx=10, pady=5)
+        ttk.Checkbutton(self, text="Usar audios de forma aleatoria", variable=self.use_folder_audio_var).grid(row=1, column=0, sticky="w", padx=10, pady=5)
         ttk.Checkbutton(self, text="Usar áudios da pasta selecionada", variable=self.select_folder_audio_var).grid(row=2, column=0, sticky="w", padx=10, pady=5)
 
         ttk.Entry(self, textvariable=self.audio_folder_path, width=40, state="readonly").grid(row=2, column=1, padx=5)

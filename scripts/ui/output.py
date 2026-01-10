@@ -6,7 +6,7 @@ from modules.video_editor import VideoEditor
 import threading
 
 class OutputVideo(ttk.LabelFrame):
-    def __init__(self, parent, video_controls, video_borders, subtitle_manager, emoji_manager):
+    def __init__(self, parent, video_controls, video_borders, subtitle_manager, emoji_manager, audio_settings_ui):
         super().__init__(parent, text="Salvar Vídeo Processado")
         self.pack(fill="x", pady=10)
         
@@ -14,6 +14,7 @@ class OutputVideo(ttk.LabelFrame):
         self.video_borders = video_borders
         self.subtitle_manager = subtitle_manager
         self.emoji_manager = emoji_manager
+        self.audio_settings_ui = audio_settings_ui
         self.editor = VideoEditor()
 
         self.output_path = tk.StringVar()
@@ -57,14 +58,22 @@ class OutputVideo(ttk.LabelFrame):
         color = self.video_borders.get_border_color()
         subtitles = self.subtitle_manager.get_subtitles()
         
+        # Coletar configurações de áudio
+        audio_settings = {
+            'remove_audio': self.audio_settings_ui.remove_audio_var.get(),
+            'use_folder_audio': self.audio_settings_ui.use_folder_audio_var.get() or self.audio_settings_ui.select_folder_audio_var.get(),
+            'random_mode': self.audio_settings_ui.use_folder_audio_var.get(),
+            'audio_folder': self.audio_settings_ui.audio_folder_path.get()
+        }
+        
         self.render_btn.config(state="disabled")
         self.status_label.config(text="Renderizando... Aguarde.")
         
         # Rodar em thread para não travar a UI
-        threading.Thread(target=self.run_render, args=(input_path, output_folder, style, color, subtitles, self.emoji_manager)).start()
+        threading.Thread(target=self.run_render, args=(input_path, output_folder, style, color, subtitles, self.emoji_manager, audio_settings)).start()
 
-    def run_render(self, input_path, output_folder, style, color, subtitles, emoji_manager):
-        success, result = self.editor.render_video(input_path, output_folder, style, color, subtitles, emoji_manager)
+    def run_render(self, input_path, output_folder, style, color, subtitles, emoji_manager, audio_settings):
+        success, result = self.editor.render_video(input_path, output_folder, style, color, subtitles, emoji_manager, audio_settings)
         
         if success:
             self.status_label.config(text=f"Concluído! Salvo em: {result}")

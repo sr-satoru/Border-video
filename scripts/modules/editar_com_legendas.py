@@ -5,6 +5,7 @@ import cv2
 import moviepy.editor as mp
 from moviepy.video.VideoClip import VideoClip
 from modules.subiitels.renderizador_legendas import RenderizadorLegendas
+from modules.audio.gerenciador_audio import GerenciadorAudio
 
 class VideoRenderer:
     """
@@ -23,6 +24,7 @@ class VideoRenderer:
     def __init__(self, emoji_manager):
         self.emoji_manager = emoji_manager
         self.subtitle_renderer = RenderizadorLegendas(emoji_manager)
+        self.audio_manager = GerenciadorAudio()
         self.blur_intensity = 25
 
     def apply_blur_opencv(self, frame):
@@ -170,12 +172,34 @@ class VideoRenderer:
                 
         return np.array(final_image)
 
-    def render_video(self, input_path, output_folder, border_enabled, border_size_preview, border_color, border_style, subtitles, emoji_scale=1.0, threads=4):
+    def render_video(self, input_path, output_folder, border_enabled, border_size_preview, border_color, border_style, subtitles, emoji_scale=1.0, threads=4, audio_settings=None):
         """Renderiza o vídeo completo"""
         try:
             clip = mp.VideoFileClip(input_path)
             
-            # Dimensões do vídeo interno
+            # 1. Lógica de Áudio
+            final_audio = clip.audio
+            if audio_settings:
+                remove_audio = audio_settings.get('remove_audio', False)
+                use_folder_audio = audio_settings.get('use_folder_audio', False)
+                random_mode = audio_settings.get('random_mode', False)
+                audio_folder = audio_settings.get('audio_folder', "")
+
+                if use_folder_audio and audio_folder:
+                    audio_path = self.audio_manager.get_next_audio(audio_folder, random_mode=random_mode)
+                    if audio_path:
+                        new_audio = mp.AudioFileClip(audio_path)
+                        # Ajustar duração do áudio se necessário (loop ou corte)
+                        if new_audio.duration < clip.duration:
+                            final_audio = mp.afx.audio_loop(new_audio, duration=clip.duration)
+                        else:
+                            final_audio = new_audio.set_duration(clip.duration)
+                    elif remove_audio:
+                        final_audio = None
+                elif remove_audio:
+                    final_audio = None
+
+            # 2. Dimensões do vídeo interno
             v_w, v_h, _ = self.calculate_video_dimensions(border_enabled, border_size_preview)
             video_resized = clip.resize((v_w, v_h))
             
@@ -206,8 +230,8 @@ class VideoRenderer:
             final_clip = VideoClip(make_frame=make_frame, duration=clip.duration)
             final_clip = final_clip.set_fps(fps)
             
-            if clip.audio:
-                final_clip = final_clip.set_audio(clip.audio)
+            if final_audio:
+                final_clip = final_clip.set_audio(final_audio)
                 
             base_name = os.path.splitext(os.path.basename(input_path))[0]
             output_path = os.path.join(output_folder, f"{base_name}_render.mp4")
