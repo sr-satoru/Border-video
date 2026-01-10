@@ -24,9 +24,10 @@ class VideoSelector:
         filepath = filedialog.askopenfilename(
             filetypes=[("Vídeos", "*.mp4 *.mov *.avi *.mkv")]
         )
-        if not filepath:
-            return
+        if filepath:
+            self.load_video(filepath)
 
+    def load_video(self, filepath):
         # Carrega o vídeo usando moviepy
         self.current_video_path = filepath
         clip = VideoFileClip(filepath)

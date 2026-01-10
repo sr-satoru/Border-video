@@ -101,3 +101,18 @@ class VideoBorders(ttk.LabelFrame):
 
     def get_border_color(self):
         return self.border_color
+    def get_state(self):
+        return {
+            "add_border": self.add_border.get(),
+            "style": self.style_var.get(),
+            "border_color": self.border_color,
+            "border_size": self.border_size_var.get()
+        }
+
+    def set_state(self, state):
+        self.add_border.set(state.get("add_border", False))
+        self.style_var.set(state.get("style", "Sem moldura"))
+        self.border_color = state.get("border_color", "#FFFFFF")
+        self.color_indicator.config(bg=self.border_color)
+        self.border_size_var.set(state.get("border_size", 14))
+        self.update_preview()

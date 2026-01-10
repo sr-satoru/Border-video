@@ -8,7 +8,7 @@ class SubtitleManager:
         self.subtitles = []
         self.counter = 0
 
-    def add_subtitle(self, text, font="Arial Black", size=40, color="#FFFFFF", border_color="#000000", bg_color="", x=135, y=400, border_thickness=2):
+    def add_subtitle(self, text, font="Arial Black", size=18, color="#FFFFFF", border_color="#000000", bg_color="", x=135, y=400, border_thickness=2):
         self.counter += 1
         subtitle = {
             "id": self.counter,

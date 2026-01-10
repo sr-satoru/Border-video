@@ -83,3 +83,10 @@ class OutputVideo(ttk.LabelFrame):
             messagebox.showerror("Erro", f"Falha na renderização:\n{result}")
             
         self.render_btn.config(state="normal")
+    def get_state(self):
+        return {
+            "output_path": self.output_path.get()
+        }
+
+    def set_state(self, state):
+        self.output_path.set(state.get("output_path", ""))

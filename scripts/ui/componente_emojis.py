@@ -45,6 +45,7 @@ class ComponenteEmojis(ttk.LabelFrame):
             self.load_emojis(folder)
 
     def load_emojis(self, folder):
+        self.emoji_folder_path = folder
         for widget in self.emoji_inner_frame.winfo_children():
             widget.destroy()
         
@@ -64,6 +65,20 @@ class ComponenteEmojis(ttk.LabelFrame):
         
         self.emoji_inner_frame.update_idletasks()
         self.emoji_canvas.configure(scrollregion=self.emoji_canvas.bbox("all"))
+
+    def get_state(self):
+        return {
+            "folder": self.emoji_folder_path,
+            "scale": self.emoji_scale.get()
+        }
+
+    def set_state(self, state):
+        folder = state.get("folder")
+        if folder and os.path.exists(folder):
+            self.emoji_folder_label.config(text=os.path.basename(folder))
+            self.load_emojis(folder)
+        
+        self.emoji_scale.set(state.get("scale", 1.0))
 
     def set_selected_emoji(self, name):
         self.selected_emoji_name = name

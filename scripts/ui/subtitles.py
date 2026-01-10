@@ -233,3 +233,33 @@ class Subtitles(ttk.Frame):
     def on_preview_release(self, event):
         self.dragging_subtitle_idx = None
         self.update_preview()
+    def get_state(self):
+        return {
+            "subtitles": self.subtitle_manager.get_subtitles(),
+            "emojis": self.comp_emojis.get_state(),
+            "estilo": self.comp_estilo.get_state()
+        }
+
+    def set_state(self, state):
+        # Limpar legendas atuais
+        self.subtitle_manager.clear()
+        
+        # Carregar novas legendas
+        for sub in state.get("subtitles", []):
+            self.subtitle_manager.add_subtitle(
+                text=sub['text'],
+                font=sub['font'],
+                size=sub['size'],
+                color=sub['color'],
+                border_color=sub['border'],
+                bg_color=sub['bg'],
+                border_thickness=sub['border_thickness'],
+                x=sub['x'],
+                y=sub['y']
+            )
+        
+        self.comp_emojis.set_state(state.get("emojis", {}))
+        self.comp_estilo.set_state(state.get("estilo", {}))
+        
+        self.comp_lista.refresh()
+        self.update_preview()

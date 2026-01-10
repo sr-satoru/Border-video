@@ -22,3 +22,16 @@ class AudioSettings(ttk.LabelFrame):
         folder = filedialog.askdirectory()
         if folder:
             self.audio_folder_path.set(folder)
+    def get_state(self):
+        return {
+            "remove_audio": self.remove_audio_var.get(),
+            "use_folder_audio": self.use_folder_audio_var.get(),
+            "select_folder_audio": self.select_folder_audio_var.get(),
+            "audio_folder_path": self.audio_folder_path.get()
+        }
+
+    def set_state(self, state):
+        self.remove_audio_var.set(state.get("remove_audio", False))
+        self.use_folder_audio_var.set(state.get("use_folder_audio", False))
+        self.select_folder_audio_var.set(state.get("select_folder_audio", False))
+        self.audio_folder_path.set(state.get("audio_folder_path", ""))

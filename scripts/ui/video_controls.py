@@ -16,3 +16,12 @@ class VideoControls(ttk.LabelFrame):
             text="Processar toda pasta",
             variable=processar_pasta_var
         ).pack(side="left", padx=10, pady=10)
+    def get_state(self):
+        return {
+            "current_video_path": self.video_selector.current_video_path
+        }
+
+    def set_state(self, state):
+        path = state.get("current_video_path")
+        if path:
+            self.video_selector.load_video(path)
