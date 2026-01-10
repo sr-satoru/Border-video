@@ -9,7 +9,8 @@ from ui.audio import AudioSettings
 from ui.output import OutputVideo
 from ui.footer import Footer
 
-from modules.subtitle_manager import SubtitleManager, EmojiManager
+from modules.subiitels.gerenciador_legendas import GerenciadorLegendas
+from modules.subiitels.gerenciador_emojis import GerenciadorEmojis
 
 class EditorUI(tk.Tk):
     def __init__(self):
@@ -73,8 +74,8 @@ class EditorUI(tk.Tk):
         ))
 
         # ================== MANAGERS ==================
-        subtitle_manager = SubtitleManager()
-        emoji_manager = EmojiManager()
+        subtitle_manager = GerenciadorLegendas()
+        emoji_manager = GerenciadorEmojis()
 
         # ================== MÓDULOS ==================
         preview = Preview(scroll_frame)  # Apenas o canvas do preview

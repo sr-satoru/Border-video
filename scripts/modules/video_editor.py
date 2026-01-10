@@ -2,7 +2,8 @@ import moviepy.editor as mp
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw
-from modules.subtitle_manager import SubtitleRenderer, EmojiManager
+from modules.subiitels.renderizador_legendas import RenderizadorLegendas
+from modules.subiitels.gerenciador_emojis import GerenciadorEmojis
 from modules.editar_com_legendas import VideoRenderer
 
 class VideoEditor:
@@ -185,12 +186,13 @@ class VideoEditor:
             print(f"Erro ao gerar base preview: {e}")
             return None
 
-    def generate_preview_image(self, video_path, style, border_color="white", subtitles=None, emoji_manager=None, base_frame=None, border_size_preview=50):
+    def generate_preview_image(self, video_path, style, border_color="white", subtitles=None, emoji_manager=None, base_frame=None, border_size_preview=14):
         """
         Gera uma imagem de preview.
         """
         renderer = VideoRenderer(emoji_manager)
-        border_enabled = "Moldura" in style
+        style_lower = style.lower()
+        border_enabled = "moldura" in style_lower or "black" in style_lower or "white" in style_lower or "blur" in style_lower
 
         if base_frame is not None:
             # Se já temos o base_frame (que é 1080p), apenas desenhamos as legendas
@@ -220,13 +222,20 @@ class VideoEditor:
                 frame = clip.get_frame(0)
                 video_resized = Image.fromarray(frame).resize((v_w, v_h), Image.Resampling.LANCZOS)
                 
+                # Se for blur, gerar o frame de fundo
+                bg_frame = None
+                if "blur" in (style or "").lower():
+                    raw_bg = np.array(Image.fromarray(frame).resize((renderer.OUTPUT_WIDTH, renderer.OUTPUT_HEIGHT), Image.Resampling.LANCZOS))
+                    bg_frame = renderer.apply_blur_opencv(raw_bg)
+
                 final_frame = renderer.render_frame(
                     np.array(video_resized),
                     subtitles,
                     border_enabled,
                     border_size_preview,
                     border_color,
-                    style
+                    style,
+                    background_frame=bg_frame
                 )
                 clip.close()
                 return final_frame
@@ -239,8 +248,9 @@ class VideoEditor:
         Renderiza o vídeo final usando o VideoRenderer.
         """
         renderer = VideoRenderer(emoji_manager)
-        border_enabled = "Moldura" in style
-        border_size_preview = 50 # Padrão
+        style_lower = style.lower()
+        border_enabled = "moldura" in style_lower or "black" in style_lower or "white" in style_lower or "blur" in style_lower
+        border_size_preview = 14 # Padrão
         
         success, result = renderer.render_video(
             input_path,

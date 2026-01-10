@@ -37,7 +37,7 @@ class VideoBorders(ttk.LabelFrame):
         self.color_indicator.grid(row=1, column=2, padx=5)
 
         ttk.Label(self, text="Tamanho:").grid(row=1, column=3, padx=5)
-        self.border_size_var = tk.IntVar(value=50)
+        self.border_size_var = tk.IntVar(value=14)
         self.border_size_spin = ttk.Spinbox(self, from_=10, to=200, textvariable=self.border_size_var, width=5, command=self.update_preview)
         self.border_size_spin.grid(row=1, column=4, padx=5)
         self.border_size_spin.bind("<Return>", self.update_preview)
