@@ -8,7 +8,7 @@ class SubtitleManager:
         self.subtitles = []
         self.counter = 0
 
-    def add_subtitle(self, text, font="Arial Black", size=40, color="#FFFFFF", border_color="#000000", bg_color="", x=540, y=1600, border_thickness=2):
+    def add_subtitle(self, text, font="Arial Black", size=40, color="#FFFFFF", border_color="#000000", bg_color="", x=135, y=400, border_thickness=2):
         self.counter += 1
         subtitle = {
             "id": self.counter,
@@ -101,13 +101,41 @@ class SubtitleRenderer:
         bg = sub["bg"]
         border_thickness = sub.get("border_thickness", 2)
         
-        # Fonte
+    def _get_font(self, font_family, size):
+        """Carrega a fonte correta para Linux"""
         try:
-            # Tentar carregar fonte do sistema
-            font_path = "arial.ttf" 
-            font = ImageFont.truetype(font_path, int(sub["size"] * scale_factor))
+            if font_family == "Arial Black":
+                return ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", size)
+            elif font_family == "Arial":
+                return ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", size)
+            elif font_family == "Helvetica":
+                return ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", size)
+            elif font_family == "Times":
+                return ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", size)
+            elif font_family == "Courier":
+                return ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf", size)
+            elif font_family == "Verdana":
+                return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
+            elif font_family == "Impact":
+                return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size)
+            elif font_family == "Comic Sans MS":
+                return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
+            else:
+                return ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", size)
         except:
-            font = ImageFont.load_default()
+            return ImageFont.load_default()
+
+    def draw_subtitle(self, draw, sub, scale_factor=1.0, emoji_scale=1.0, offset_x=0, offset_y=0):
+        text = sub["text"]
+        x = sub["x"] * scale_factor + offset_x
+        y = sub["y"] * scale_factor + offset_y
+        color = sub["color"]
+        border = sub["border"]
+        bg = sub["bg"]
+        border_thickness = sub.get("border_thickness", 2)
+        
+        # Fonte
+        font = self._get_font(sub["font"], int(sub["size"] * scale_factor))
 
         emoji_pattern = r'\[EMOJI:([^\]]+)\]'
         lines = text.split('\n')
@@ -156,15 +184,12 @@ class SubtitleRenderer:
                         draw._image.paste(e_img, (int(curr_x), int(curr_y - e_size//2)), e_img if e_img.mode == 'RGBA' else None)
                         curr_x += e_size
 
-    def get_subtitle_bbox(self, sub, scale_factor=1.0, emoji_scale=1.0):
+    def get_subtitle_bbox(self, sub, scale_factor=1.0, emoji_scale=1.0, offset_x=0, offset_y=0):
         text = sub["text"]
-        x = sub["x"] * scale_factor
-        y = sub["y"] * scale_factor
+        x = sub["x"] * scale_factor + offset_x
+        y = sub["y"] * scale_factor + offset_y
         
-        try:
-            font = ImageFont.truetype("arial.ttf", int(sub["size"] * scale_factor))
-        except:
-            font = ImageFont.load_default()
+        font = self._get_font(sub["font"], int(sub["size"] * scale_factor))
             
         emoji_pattern = r'\[EMOJI:([^\]]+)\]'
         lines = text.split('\n')

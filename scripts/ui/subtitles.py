@@ -231,7 +231,7 @@ class Subtitles(ttk.Frame):
             border_color=self.border_color.get(),
             bg_color=self.bg_color.get(),
             border_thickness=self.border_thickness.get(),
-            x=540, y=1600 # Centro inferior padrão (1080p)
+            x=135, y=400 # Centro inferior padrão (base 270p)
         )
         self.text_widget.delete("1.0", "end")
         self.refresh_list()
@@ -372,7 +372,8 @@ class Subtitles(ttk.Frame):
         style = self.video_borders.get_effective_style()
         border_color = self.video_borders.border_color
         subtitles = self.subtitle_manager.get_subtitles()
-        current_params = (video_path, style, border_color)
+        border_size_preview = self.video_borders.border_size_var.get()
+        current_params = (video_path, style, border_color, border_size_preview)
         
         canvas = self.video_controls.video_selector.preview_canvas
         preview_w = canvas.winfo_width()
@@ -392,7 +393,10 @@ class Subtitles(ttk.Frame):
                 img_x = (preview_w - img_w) // 2
                 img_y = (preview_h - img_h) // 2
                 self.preview_img_geometry = (img_x, img_y, img_w, img_h)
-                self.preview_scale_factor = img_w / 1080.0
+                self.preview_scale_factor = img_w / 270.0 # Base 270p
+                
+                # Precisamos do scaled_border para o hit detection
+                self.scaled_border_render = border_size_preview * self.preview_scale_factor
             else: return
 
         if self.cached_preview_base:
@@ -403,12 +407,32 @@ class Subtitles(ttk.Frame):
             img_x, img_y, img_w, img_h = self.preview_img_geometry
             scale = self.preview_scale_factor
             
+            # Offset da borda escalado para o preview
+            # No preview, as coordenadas são (sub["x"] * scale + scaled_border * scale)
+            # Mas o VideoRenderer já faz isso no render_frame.
+            # Aqui no preview da UI, estamos desenhando em cima do base_frame (que é 1080p redimensionado).
+            
             for idx, sub in enumerate(subtitles):
-                # Desenhar usando o renderer do módulo
-                self.renderer.draw_subtitle(draw, sub, scale_factor=scale, emoji_scale=self.emoji_scale.get())
+                # Offset da borda escalado para o preview
+                offset = (border_size_preview * scale if "Moldura" in style else 0)
                 
-                # BBox para hit detection usando o renderer do módulo
-                bbox = self.renderer.get_subtitle_bbox(sub, scale_factor=scale, emoji_scale=self.emoji_scale.get())
+                # Desenhar usando o renderer do módulo
+                self.renderer.draw_subtitle(
+                    draw, sub, 
+                    scale_factor=scale, 
+                    emoji_scale=self.emoji_scale.get(),
+                    offset_x=offset,
+                    offset_y=offset
+                )
+                
+                # BBox para hit detection
+                bbox = self.renderer.get_subtitle_bbox(
+                    sub, 
+                    scale_factor=scale, 
+                    emoji_scale=self.emoji_scale.get(),
+                    offset_x=offset,
+                    offset_y=offset
+                )
                 
                 # Desenhar retângulo de seleção no PIL se selecionado
                 if idx == self.selected_subtitle_idx or idx == self.dragging_subtitle_idx:
@@ -434,17 +458,22 @@ class Subtitles(ttk.Frame):
                 self.dragging_subtitle_idx = i
                 self.selected_subtitle_idx = i
                 
-                # Offset relativo à posição X,Y da legenda (em coordenadas 1080p)
+                # Offset relativo à posição RENDERIZADA da legenda (em coordenadas 270p)
                 sub = self.subtitle_manager.get_subtitles()[i]
                 img_x, img_y, _, _ = self.preview_img_geometry
                 scale = self.preview_scale_factor
                 
-                # Converter clique do canvas para coordenadas 1080p
+                # Converter clique do canvas para coordenadas 270p
                 click_video_x = (x - img_x) / scale
                 click_video_y = (y - img_y) / scale
                 
-                self.drag_offset_x = click_video_x - sub["x"]
-                self.drag_offset_y = click_video_y - sub["y"]
+                # Posição renderizada atual
+                style = self.video_borders.get_effective_style()
+                border_size_preview = self.video_borders.border_size_var.get()
+                border_offset = (border_size_preview if "Moldura" in style else 0)
+                
+                self.drag_offset_x = click_video_x - (sub["x"] + border_offset)
+                self.drag_offset_y = click_video_y - (sub["y"] + border_offset)
                 
                 self.subtitles_listbox.selection_clear(0, tk.END)
                 self.subtitles_listbox.selection_set(i)
@@ -458,9 +487,17 @@ class Subtitles(ttk.Frame):
             img_x, img_y, _, _ = self.preview_img_geometry
             scale = self.preview_scale_factor
             
-            # Nova posição no vídeo = (Posição no canvas - offset) convertida para escala
-            new_video_x = (event.x - img_x) / scale - self.drag_offset_x
-            new_video_y = (event.y - img_y) / scale - self.drag_offset_y
+            # Nova posição RENDERIZADA no vídeo (270p)
+            new_render_x = (event.x - img_x) / scale - self.drag_offset_x
+            new_render_y = (event.y - img_y) / scale - self.drag_offset_y
+            
+            # Converter de volta para posição ORIGINAL (sem o offset da borda)
+            style = self.video_borders.get_effective_style()
+            border_size_preview = self.video_borders.border_size_var.get()
+            border_offset = (border_size_preview if "Moldura" in style else 0)
+            
+            new_video_x = new_render_x - border_offset
+            new_video_y = new_render_y - border_offset
             
             self.subtitle_manager.update_subtitle(self.dragging_subtitle_idx, x=int(new_video_x), y=int(new_video_y))
             self.update_preview()

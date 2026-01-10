@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 from modules.subtitle_manager import SubtitleRenderer, EmojiManager
+from modules.editar_com_legendas import VideoRenderer
 
 class VideoEditor:
     def __init__(self):
@@ -12,6 +13,7 @@ class VideoEditor:
         self.video_height_ratio = 0.70
         self.border_size = 14
         self.blur_intensity = 25
+        # O VideoRenderer será instanciado sob demanda ou no init se houver emoji_manager
 
     def apply_blur_opencv(self, get_frame, t):
         frame = get_frame(t)
@@ -155,129 +157,98 @@ class VideoEditor:
     def generate_base_preview(self, video_path, style, border_color="white"):
         """
         Gera o frame base do preview (sem legendas).
-        Retorna um numpy array.
         """
+        renderer = VideoRenderer(None)
+        border_enabled = "Moldura" in style
+        border_size_preview = 50 if border_enabled else 0
+        
         try:
             clip = mp.VideoFileClip(video_path)
+            v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview)
+            
             subclip = clip.subclip(0, 0.1)
-            final_clip = self.create_composition(subclip, style, border_color)
-            frame = final_clip.get_frame(0)
+            video_resized = subclip.resize((v_w, v_h))
+            
+            frame = renderer.render_frame(
+                video_resized.get_frame(0),
+                subtitles=[],
+                border_enabled=border_enabled,
+                border_size_preview=border_size_preview,
+                border_color=border_color,
+                border_style=style
+            )
             
             clip.close()
-            final_clip.close()
+            video_resized.close()
             return frame
         except Exception as e:
             print(f"Erro ao gerar base preview: {e}")
             return None
 
-    def generate_preview_image(self, video_path, style, border_color="white", subtitles=None, emoji_manager=None, base_frame=None):
+    def generate_preview_image(self, video_path, style, border_color="white", subtitles=None, emoji_manager=None, base_frame=None, border_size_preview=50):
         """
-        Gera uma imagem de preview. Se base_frame for fornecido, usa ele em vez de gerar do zero.
+        Gera uma imagem de preview.
         """
-        try:
-            if base_frame is not None:
-                frame = base_frame.copy()
-            else:
-                frame = self.generate_base_preview(video_path, style, border_color)
-                if frame is None: return None
+        renderer = VideoRenderer(emoji_manager)
+        border_enabled = "Moldura" in style
+
+        if base_frame is not None:
+            # Se já temos o base_frame (que é 1080p), apenas desenhamos as legendas
+            image = Image.fromarray(base_frame)
+            draw = ImageDraw.Draw(image)
             
-            # Se houver legendas, desenhar
-            if subtitles and emoji_manager:
-                renderer = SubtitleRenderer(emoji_manager)
-                
-                # Converte para PIL
-                image = Image.fromarray(frame)
-                draw = ImageDraw.Draw(image)
-                
-                w, h = image.size
-                
-                # Desenha cada legenda
-                for sub in subtitles:
-                    # Escala baseada na largura (assumindo 1080p como base)
-                    # O VideoEditor usa w / 270.0 para renderizar no preview
-                    render_scale = w / 270.0 
-                    
-                    renderer.draw_subtitle(draw, sub, scale_factor=render_scale, emoji_scale=1.0)
-                
-                frame = np.array(image)
+            # Precisamos do offset da borda para as legendas
+            _, _, scaled_border = renderer.calculate_video_dimensions(border_enabled, border_size_preview)
+            scale_factor = renderer.get_scale_factor()
+
+            for sub in (subtitles or []):
+                renderer.subtitle_renderer.draw_subtitle(
+                    draw, 
+                    sub,
+                    scale_factor=scale_factor,
+                    offset_x=scaled_border if border_enabled else 0,
+                    offset_y=scaled_border if border_enabled else 0,
+                    emoji_scale=1.0 # Padrão para preview do editor
+                )
             
-            return frame
-        except Exception as e:
-            print(f"Erro ao gerar preview: {e}")
-            return None
+            return np.array(image)
+        else:
+            # Gera do zero
+            try:
+                clip = mp.VideoFileClip(video_path)
+                v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview)
+                frame = clip.get_frame(0)
+                video_resized = Image.fromarray(frame).resize((v_w, v_h), Image.Resampling.LANCZOS)
+                
+                final_frame = renderer.render_frame(
+                    np.array(video_resized),
+                    subtitles,
+                    border_enabled,
+                    border_size_preview,
+                    border_color,
+                    style
+                )
+                clip.close()
+                return final_frame
+            except Exception as e:
+                print(f"Erro ao gerar preview: {e}")
+                return None
 
     def render_video(self, input_path, output_path, style, border_color="white", subtitles=None, emoji_manager=None):
         """
-        Renderiza o vídeo final com os efeitos aplicados e legendas.
+        Renderiza o vídeo final usando o VideoRenderer.
         """
-        try:
-            clip = mp.VideoFileClip(input_path)
-            
-            # 1. Aplicar efeitos de borda/fundo
-            # create_composition retorna um CompositeVideoClip
-            # Mas para desenhar legendas frame a frame com PIL, precisamos de um VideoClip genérico ou processar o Composite.
-            # O ideal é processar o Composite e DEPOIS desenhar as legendas.
-            
-            base_clip = self.create_composition(clip, style, border_color)
-            
-            # Se houver legendas, criar um novo clip com as legendas desenhadas
-            if subtitles and emoji_manager:
-                renderer = SubtitleRenderer(emoji_manager)
-                
-                # Dimensões finais
-                w, h = base_clip.size
-                
-                def make_frame_with_subtitles(t):
-                    frame = base_clip.get_frame(t)
-                    
-                    # Converte para PIL
-                    image = Image.fromarray(frame)
-                    draw = ImageDraw.Draw(image)
-                    
-                    # Desenha cada legenda
-                    for sub in subtitles:
-                        # Escala baseada na largura (assumindo 1080p como base se as coords forem relativas a 1080p)
-                        # Se as coords já forem para 1080p, scale_factor = 1.0 se w=1080
-                        scale_factor = w / 1080.0 if w != 1080 else 1.0
-                        # Mas o simples.py usava 270 como base para preview e 1080 para render.
-                        # Aqui vamos assumir que as coordenadas passadas já são para a resolução final ou ajustadas.
-                        # Se o UI passar coordenadas de preview (270p), precisamos escalar.
-                        # Vamos assumir que o UI passa coordenadas normalizadas ou o render ajusta.
-                        # No simples.py, ele recalculava scale_factor = output_width / 270.
-                        # Vamos assumir que 'subtitles' tem coordenadas baseadas em 270p (preview) e escalar.
-                        
-                        render_scale = w / 270.0 # Se as coords vem do preview 270p
-                        
-                        renderer.draw_subtitle(draw, sub, scale_factor=render_scale, emoji_scale=1.0)
-                    
-                    return np.array(image)
-                
-                final_clip = mp.VideoClip(make_frame=make_frame_with_subtitles, duration=base_clip.duration)
-                final_clip = final_clip.set_audio(base_clip.audio)
-                final_clip = final_clip.set_fps(clip.fps if clip.fps else 30)
-            else:
-                final_clip = base_clip
-
-            # Definir nome do arquivo de saída
-            import os
-            filename = os.path.basename(input_path)
-            name, ext = os.path.splitext(filename)
-            output_file = os.path.join(output_path, f"{name}_edited{ext}")
-            
-            # Escrever arquivo
-            final_clip.write_videofile(
-                output_file,
-                codec="libx264",
-                audio_codec="aac",
-                fps=30,
-                preset="medium",
-                threads=4
-            )
-            
-            clip.close()
-            base_clip.close()
-            final_clip.close()
-            return True, output_file
-        except Exception as e:
-            print(f"Erro ao renderizar: {e}")
-            return False, str(e)
+        renderer = VideoRenderer(emoji_manager)
+        border_enabled = "Moldura" in style
+        border_size_preview = 50 # Padrão
+        
+        success, result = renderer.render_video(
+            input_path,
+            output_path,
+            border_enabled,
+            border_size_preview,
+            border_color,
+            style,
+            subtitles
+        )
+        return success, result
