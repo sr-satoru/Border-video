@@ -52,8 +52,13 @@ class VideoEditor:
             print(f"DEBUG: Error checking input video: {e}")
 
         # Dimensões calculadas
-        video_width = int(self.width * self.video_width_ratio)
-        video_height = int(self.height * self.video_height_ratio)
+        # Se for "Sem moldura" e não tiver outros estilos, usa tela cheia
+        if style == "Sem moldura":
+            video_width = self.width
+            video_height = self.height
+        else:
+            video_width = int(self.width * self.video_width_ratio)
+            video_height = int(self.height * self.video_height_ratio)
         
         frame_width = video_width + self.border_size * 2
         frame_height = video_height + self.border_size * 2
