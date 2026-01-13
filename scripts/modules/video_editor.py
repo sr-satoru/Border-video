@@ -165,7 +165,7 @@ class VideoEditor:
         
         try:
             clip = mp.VideoFileClip(video_path)
-            v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview)
+            v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview, is_preview=True)
             
             subclip = clip.subclip(0, 0.1)
             video_resized = subclip.resize((v_w, v_h))
@@ -176,7 +176,8 @@ class VideoEditor:
                 border_enabled=border_enabled,
                 border_size_preview=border_size_preview,
                 border_color=border_color,
-                border_style=style
+                border_style=style,
+                is_preview=True
             )
             
             clip.close()
@@ -200,7 +201,7 @@ class VideoEditor:
             draw = ImageDraw.Draw(image)
             
             # Precisamos do offset da borda para as legendas
-            v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview)
+            v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview, is_preview=True)
             offset_x, offset_y = renderer.get_offsets(v_w, v_h)
             scale_factor = renderer.get_scale_factor()
 
@@ -219,7 +220,7 @@ class VideoEditor:
             # Gera do zero
             try:
                 clip = mp.VideoFileClip(video_path)
-                v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview)
+                v_w, v_h, _ = renderer.calculate_video_dimensions(border_enabled, border_size_preview, is_preview=True)
                 frame = clip.get_frame(0)
                 video_resized = Image.fromarray(frame).resize((v_w, v_h), Image.Resampling.LANCZOS)
                 
@@ -236,7 +237,8 @@ class VideoEditor:
                     border_size_preview,
                     border_color,
                     style,
-                    background_frame=bg_frame
+                    background_frame=bg_frame,
+                    is_preview=True
                 )
                 clip.close()
                 return final_frame

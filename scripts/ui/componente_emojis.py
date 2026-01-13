@@ -4,6 +4,8 @@ from tkinter import ttk, filedialog
 from PIL import ImageTk
 
 class ComponenteEmojis(ttk.LabelFrame):
+    emoji_folder_path = None # Inicialização no nível da classe para segurança extra
+
     def __init__(self, parent, emoji_manager, callback_inserir):
         super().__init__(parent, text="😊 Emojis")
         self.emoji_manager = emoji_manager
@@ -11,6 +13,7 @@ class ComponenteEmojis(ttk.LabelFrame):
         
         self.emoji_scale = tk.DoubleVar(value=1.0)
         self.selected_emoji_name = None
+        self.emoji_folder_path = None
         
         self.setup_ui()
 
@@ -67,10 +70,13 @@ class ComponenteEmojis(ttk.LabelFrame):
         self.emoji_canvas.configure(scrollregion=self.emoji_canvas.bbox("all"))
 
     def get_state(self):
-        return {
-            "folder": self.emoji_folder_path,
-            "scale": self.emoji_scale.get()
-        }
+        try:
+            return {
+                "folder": getattr(self, 'emoji_folder_path', None),
+                "scale": self.emoji_scale.get()
+            }
+        except Exception:
+            return {"folder": None, "scale": 1.0}
 
     def set_state(self, state):
         folder = state.get("folder")

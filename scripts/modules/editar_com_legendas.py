@@ -14,7 +14,7 @@ class VideoRenderer:
     """
     OUTPUT_WIDTH = 1080
     OUTPUT_HEIGHT = 1920
-    BASE_WIDTH = 270.0  # Base usada no preview para cálculos de escala
+    BASE_WIDTH = 360.0  # Base usada no preview para cálculos de escala (360x640)
     ASPECT_RATIO = 9 / 16
     
     # Proporções do vídeo interno (baseado no old/black.py)
@@ -41,10 +41,10 @@ class VideoRenderer:
         """Retorna o fator de escala entre o preview (270p) e o output (1080p)"""
         return self.OUTPUT_WIDTH / self.BASE_WIDTH
 
-    def calculate_video_dimensions(self, border_enabled, border_size_preview):
+    def calculate_video_dimensions(self, border_enabled, border_size_preview, is_preview=False):
         """
         Calcula as dimensões do vídeo interno baseado na borda e proporções.
-        border_size_preview: tamanho da borda definido na UI (base 270p)
+        border_size_preview: tamanho da borda definido na UI (base 360p)
         """
         if not border_enabled:
             return self.OUTPUT_WIDTH, self.OUTPUT_HEIGHT, 0
@@ -53,8 +53,12 @@ class VideoRenderer:
         video_width = int(self.OUTPUT_WIDTH * self.VIDEO_WIDTH_RATIO)
         video_height = int(self.OUTPUT_HEIGHT * self.VIDEO_HEIGHT_RATIO)
         
-        scale_factor = self.get_scale_factor()
-        scaled_border_size = int(border_size_preview * scale_factor)
+        if is_preview:
+            # No preview, deixamos 30% maior para melhor visibilidade na interface
+            scaled_border_size = int(border_size_preview * 1.3)
+        else:
+            # No vídeo final, restauramos a configuração anterior (1:1 com o valor da UI)
+            scaled_border_size = int(border_size_preview)
             
         return video_width, video_height, scaled_border_size
 
@@ -107,7 +111,7 @@ class VideoRenderer:
                     pixels[x, y] = (r, g, b)
         return image
 
-    def render_frame(self, video_frame, subtitles, border_enabled, border_size_preview, border_color, border_style, emoji_scale=1.0, background_frame=None):
+    def render_frame(self, video_frame, subtitles, border_enabled, border_size_preview, border_color, border_style, emoji_scale=1.0, background_frame=None, is_preview=False):
         """
         Renderiza um único frame com bordas e legendas.
         video_frame: numpy array do frame do vídeo (já redimensionado para a área interna)
@@ -122,7 +126,7 @@ class VideoRenderer:
 
         if border_enabled:
             # 1. Calcular dimensões
-            v_w, v_h, scaled_border = self.calculate_video_dimensions(border_enabled, border_size_preview)
+            v_w, v_h, scaled_border = self.calculate_video_dimensions(border_enabled, border_size_preview, is_preview=is_preview)
             
             # Fundo (Background)
             final_image = self.create_background(border_style, border_color, 0, background_frame=background_frame)

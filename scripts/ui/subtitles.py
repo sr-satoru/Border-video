@@ -171,7 +171,7 @@ class Subtitles(ttk.Frame):
                 img_w, img_h = img.size
                 img_x, img_y = (preview_w - img_w) // 2, (preview_h - img_h) // 2
                 self.preview_img_geometry = (img_x, img_y, img_w, img_h)
-                self.preview_scale_factor = img_w / 270.0
+                self.preview_scale_factor = img_w / 360.0
             else: return
 
         if self.cached_preview_base:
@@ -187,12 +187,12 @@ class Subtitles(ttk.Frame):
             if border_enabled:
                 # Usar as mesmas proporções do VideoRenderer
                 # VIDEO_WIDTH_RATIO = 0.78, VIDEO_HEIGHT_RATIO = 0.70
-                # No preview, a base é 270.0
-                v_w_preview = 270.0 * 0.78
-                v_h_preview = 480.0 * 0.70 # 480 é a altura base para 270 de largura (9:16)
+                # No preview, a base é 360.0
+                v_w_preview = 360.0 * 0.78
+                v_h_preview = 640.0 * 0.70
                 
-                off_x_preview = (270.0 - v_w_preview) / 2
-                off_y_preview = (480.0 - v_h_preview) / 2
+                off_x_preview = (360.0 - v_w_preview) / 2
+                off_y_preview = (640.0 - v_h_preview) / 2
                 
                 offset_x = off_x_preview * scale
                 offset_y = off_y_preview * scale
@@ -229,10 +229,10 @@ class Subtitles(ttk.Frame):
                 border_enabled = "moldura" in style_lower or "black" in style_lower or "white" in style_lower or "blur" in style_lower
                 
                 if border_enabled:
-                    v_w_preview = 270.0 * 0.78
-                    v_h_preview = 480.0 * 0.70
-                    border_offset_x = (270.0 - v_w_preview) / 2
-                    border_offset_y = (480.0 - v_h_preview) / 2
+                    v_w_preview = 360.0 * 0.78
+                    v_h_preview = 640.0 * 0.70
+                    border_offset_x = (360.0 - v_w_preview) / 2
+                    border_offset_y = (640.0 - v_h_preview) / 2
                 else:
                     border_offset_x = 0
                     border_offset_y = 0
@@ -255,10 +255,10 @@ class Subtitles(ttk.Frame):
             border_enabled = "moldura" in style_lower or "black" in style_lower or "white" in style_lower or "blur" in style_lower
             
             if border_enabled:
-                v_w_preview = 270.0 * 0.78
-                v_h_preview = 480.0 * 0.70
-                border_offset_x = (270.0 - v_w_preview) / 2
-                border_offset_y = (480.0 - v_h_preview) / 2
+                v_w_preview = 360.0 * 0.78
+                v_h_preview = 640.0 * 0.70
+                border_offset_x = (360.0 - v_w_preview) / 2
+                border_offset_y = (640.0 - v_h_preview) / 2
             else:
                 border_offset_x = 0
                 border_offset_y = 0
