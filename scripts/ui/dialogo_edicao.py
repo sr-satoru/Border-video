@@ -44,7 +44,7 @@ class DialogoEdicaoLegenda(tk.Toplevel):
         font_options = ["Arial", "Arial Black", "Helvetica", "Impact", "Verdana", "Comic Sans MS"]
         ttk.Combobox(row2, textvariable=self.font_var, values=font_options, width=15).pack(side="left", padx=5)
         tk.Label(row2, text="Tamanho:", font=("Arial", 10, "bold")).pack(side="left", padx=(10, 0))
-        tk.Spinbox(row2, from_=10, to=200, textvariable=self.size_var, width=5).pack(side="left", padx=5)
+        tk.Spinbox(row2, from_=1, to=200, textvariable=self.size_var, width=5).pack(side="left", padx=5)
         
         # Cores
         self.criar_linha_cor(fields_frame, "Cor Texto:", self.color_var)
@@ -90,8 +90,8 @@ class DialogoEdicaoLegenda(tk.Toplevel):
             font=self.font_var.get(),
             size=self.size_var.get(),
             color=self.color_var.get(),
-            border_color=self.border_var.get(),
-            bg_color=self.bg_var.get(),
+            border=self.border_var.get(),
+            bg=self.bg_var.get(),
             border_thickness=self.thick_var.get()
         )
         if self.callback_salvar:

@@ -87,7 +87,7 @@ class RenderizadorLegendas:
             for j, part in enumerate(parts):
                 if j % 2 == 0:
                     if part:
-                        if border and border != "":
+                        if border and border != "" and border_thickness > 0:
                             t = max(1, int(border_thickness * scale_factor))
                             for dx in range(-t, t+1):
                                 for dy in range(-t, t+1):
@@ -113,12 +113,19 @@ class RenderizadorLegendas:
         emoji_pattern = r'\[EMOJI:([^\]]+)\]'
         lines = text.split('\n')
         line_height = font.size + int(5 * scale_factor)
+        total_height = len(lines) * line_height
+        start_y = y - total_height // 2
+        
         max_w = 0
-        for line in lines:
+        min_y = float('inf')
+        max_y = float('-inf')
+        
+        for i, line in enumerate(lines):
+            curr_y = start_y + i * line_height
             parts = re.split(emoji_pattern, line)
             w = 0
-            for i, part in enumerate(parts):
-                if i % 2 == 0:
+            for j, part in enumerate(parts):
+                if j % 2 == 0:
                     if part:
                         # Usar uma imagem temporária pequena para medir o texto
                         dummy = Image.new("RGB", (1, 1))
@@ -130,5 +137,12 @@ class RenderizadorLegendas:
                         w += int(font.size * emoji_scale)
             max_w = max(max_w, w)
             
-        h = len(lines) * line_height
-        return (x - max_w//2, y - h//2, x + max_w//2, y + h//2)
+            # Calcular limites verticais baseado no anchor "lm" (left-middle)
+            # O texto é centralizado verticalmente em curr_y
+            text_top = curr_y - font.size // 2
+            text_bottom = curr_y + font.size // 2
+            min_y = min(min_y, text_top)
+            max_y = max(max_y, text_bottom)
+            
+        return (x - max_w//2, min_y, x + max_w//2, max_y)
+

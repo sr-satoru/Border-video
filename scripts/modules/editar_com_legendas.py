@@ -57,7 +57,7 @@ class VideoRenderer:
             # No preview, deixamos 30% maior para melhor visibilidade na interface
             scaled_border_size = int(border_size_preview * 1.3)
         else:
-            # No vídeo final, restauramos a configuração anterior (1:1 com o valor da UI)
+            # No vídeo final, usamos o valor original do spinbox
             scaled_border_size = int(border_size_preview)
             
         return video_width, video_height, scaled_border_size

@@ -31,7 +31,7 @@ class ComponenteEstiloLegenda(ttk.LabelFrame):
         self.font_combo.grid(row=0, column=1, padx=5, pady=5, sticky="w")
         
         ttk.Label(controls_frame, text="Tamanho:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
-        ttk.Spinbox(controls_frame, from_=10, to=200, textvariable=self.font_size, width=5).grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        ttk.Spinbox(controls_frame, from_=1, to=200, textvariable=self.font_size, width=5).grid(row=0, column=3, padx=5, pady=5, sticky="w")
         
         # Row 1: Cores
         self.criar_linha_cor(controls_frame, 1, "Cor Fonte:", self.font_color, "font")
@@ -40,7 +40,9 @@ class ComponenteEstiloLegenda(ttk.LabelFrame):
         
         # Row 4: Espessura
         ttk.Label(controls_frame, text="Espessura Borda:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
-        ttk.Spinbox(controls_frame, from_=0, to=10, textvariable=self.border_thickness, width=5).grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        thickness_spinbox = ttk.Spinbox(controls_frame, from_=0, to=10, textvariable=self.border_thickness, width=5, 
+                                        command=lambda: self.callbacks.get('on_change', lambda: None)())
+        thickness_spinbox.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
     def criar_linha_cor(self, parent, row, label_text, var, key, allow_none=False):
         ttk.Label(parent, text=label_text).grid(row=row, column=0, padx=5, pady=5, sticky="w")
