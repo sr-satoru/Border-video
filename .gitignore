@@ -5,8 +5,10 @@ scripts.zip
 scripts2
 exempla
 0-exempla
+convert_json.py
+json
 
 *.mp4
 *.zip
 *.pyc
-*.json
+*.jsone
