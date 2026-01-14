@@ -193,8 +193,90 @@ class VideoRenderer:
         if watermark_data and watermark_data.get("add_text_mark"):
             draw = ImageDraw.Draw(final_image)
             self._draw_watermark(draw, watermark_data, scale_factor, offset_x, offset_y)
+            
+        # 4. Desenhar Logo (Imagem)
+        if watermark_data and watermark_data.get("logo_path"):
+            draw = ImageDraw.Draw(final_image)
+            self._draw_logo(final_image, watermark_data, scale_factor, offset_x, offset_y)
                 
         return np.array(final_image)
+
+    def _draw_logo(self, final_image, data, scale_factor, offset_x, offset_y):
+        """Desenha a logo (imagem) sobre o frame final"""
+        logo_path = data.get("logo_path")
+        if not logo_path or not os.path.exists(logo_path):
+            return
+
+        try:
+            # Carregar logo
+            logo = Image.open(logo_path).convert("RGBA")
+            
+            # Calcular tamanho final
+            base_scale = data.get("logo_scale", 0.2)
+            
+            # A escala deve ser relativa ao tamanho do vídeo de saída (1080p)
+            # Se scale_factor for diferente (ex: preview), ajustamos
+            # Mas o "scale" do usuário é relativo ao tamanho original da imagem ou ao vídeo?
+            # Vamos assumir que scale=1.0 significa tamanho original da imagem
+            
+            # Aplicar escala do usuário e escala do renderizador (preview vs final)
+            final_scale = base_scale * scale_factor
+            
+            new_w = int(logo.width * final_scale)
+            new_h = int(logo.height * final_scale)
+            
+            if new_w < 1 or new_h < 1:
+                return
+                
+            logo = logo.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            
+            # Calcular posição
+            # As coordenadas x, y vêm do usuário (baseado no vídeo interno)
+            # Precisamos somar o offset da borda
+            user_x = data.get("logo_x", 50)
+            user_y = data.get("logo_y", 50)
+            
+            # Ajustar coordenadas para a escala atual (se x,y forem absolutos em 1080p)
+            # Se x,y forem relativos ao vídeo interno (sem borda), precisamos escalar
+            # Vamos assumir que x,y são coordenadas no espaço do vídeo (antes do resize final)
+            # Mas o sistema de legendas usa coordenadas fixas baseadas em 360p? Não, usa coordenadas do vídeo.
+            
+            # O sistema de legendas recebe offset_x e offset_y que já consideram a escala e a borda.
+            # E as coordenadas da legenda são multiplicadas pelo scale_factor.
+            
+            final_x = int((user_x * scale_factor) + offset_x)
+            final_y = int((user_y * scale_factor) + offset_y)
+            
+            # Colar logo (com transparência)
+            # Se final_image for RGB, precisamos usar mask
+            final_image.paste(logo, (final_x, final_y), logo)
+            
+        except Exception as e:
+            print(f"Erro ao desenhar logo: {e}")
+
+    def get_logo_bbox(self, data, scale_factor, offset_x, offset_y):
+        """Calcula o bounding box da logo para interação no preview"""
+        logo_path = data.get("logo_path")
+        if not logo_path or not os.path.exists(logo_path):
+            return None
+
+        try:
+            logo = Image.open(logo_path)
+            base_scale = data.get("logo_scale", 0.2)
+            final_scale = base_scale * scale_factor
+            
+            new_w = int(logo.width * final_scale)
+            new_h = int(logo.height * final_scale)
+            
+            user_x = data.get("logo_x", 50)
+            user_y = data.get("logo_y", 50)
+            
+            final_x = int((user_x * scale_factor) + offset_x)
+            final_y = int((user_y * scale_factor) + offset_y)
+            
+            return (final_x, final_y, final_x + new_w, final_y + new_h)
+        except:
+            return None
 
     def _draw_watermark(self, draw, data, scale_factor, offset_x, offset_y):
         """Desenha a marca d'água de texto usando o mesmo renderer das legendas"""

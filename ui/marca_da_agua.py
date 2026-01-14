@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, colorchooser, filedialog
 from ui.dialogo_marca_agua import DialogoMarcaAgua
+from modules.logo_image_var import LogoManager
 
 class WatermarkUI(ttk.LabelFrame):
     def __init__(self, parent, video_controls, subtitle_manager, emoji_manager, video_borders):
@@ -11,6 +12,8 @@ class WatermarkUI(ttk.LabelFrame):
         self.subtitle_manager = subtitle_manager
         self.emoji_manager = emoji_manager
         self.video_borders = video_borders
+        
+        self.logo_manager = LogoManager()
         
         # Estado interno para configurações avançadas
         self.text_config = {
@@ -30,6 +33,14 @@ class WatermarkUI(ttk.LabelFrame):
         self.text_config["x"] = x
         self.text_config["y"] = y
         # Não precisa atualizar a UI inteira, apenas o preview
+        self.update_preview()
+
+    def update_logo_position(self, x, y):
+        self.logo_manager.update_position(x, y)
+        self.update_preview()
+
+    def update_logo_scale(self, scale):
+        self.logo_manager.update_scale(scale)
         self.update_preview()
 
     def _setup_ui(self):
@@ -120,7 +131,8 @@ class WatermarkUI(ttk.LabelFrame):
         )
         if path:
             self.logo_path_var.set(path)
-            self.update_preview()
+            if self.logo_manager.set_logo(path):
+                self.update_preview()
 
     def _open_edit_dialog(self):
         DialogoMarcaAgua(self, self.text_config, self._update_config)
@@ -165,10 +177,20 @@ class WatermarkUI(ttk.LabelFrame):
 
     def get_state(self):
         state = self.text_config.copy()
+        
+        # Adicionar estado da logo
+        logo_state = self.logo_manager.get_state()
+        state.update({
+            "logo_path": logo_state["logo_path"],
+            "logo_x": logo_state["x"],
+            "logo_y": logo_state["y"],
+            "logo_scale": logo_state["scale"],
+            "logo_opacity": logo_state["opacity"]
+        })
+        
         state.update({
             "add_final_video": self.add_final_video_var.get(),
             "video_path": self.video_path_var.get(),
-            "logo_path": self.logo_path_var.get(),
             "add_text_mark": self.add_text_mark_var.get(),
         })
         return state
@@ -178,6 +200,15 @@ class WatermarkUI(ttk.LabelFrame):
         self.video_path_var.set(state.get("video_path", ""))
         self.logo_path_var.set(state.get("logo_path", ""))
         self.add_text_mark_var.set(state.get("add_text_mark", False))
+        
+        # Restaurar estado da logo
+        self.logo_manager.set_state({
+            "logo_path": state.get("logo_path", ""),
+            "x": state.get("logo_x", 50),
+            "y": state.get("logo_y", 50),
+            "scale": state.get("logo_scale", 0.2),
+            "opacity": state.get("logo_opacity", 1.0)
+        })
         
         # Atualizar config de texto
         for key in self.text_config:

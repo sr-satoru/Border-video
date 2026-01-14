@@ -40,6 +40,15 @@ class Subtitles(ttk.Frame):
         self.selected_watermark = False
         self.watermark_bbox_cache = None
         
+        # Estado de Drag-and-Drop para Logo
+        self.dragging_logo = False
+        self.resizing_logo = False
+        self.selected_logo = False
+        self.logo_bbox_cache = None
+        self.logo_resize_handle_bbox = None
+        self.initial_logo_scale = 1.0
+        self.initial_mouse_y = 0
+        
         self.last_preview_params = None
         self.cached_preview_base = None
         
@@ -249,6 +258,46 @@ class Subtitles(ttk.Frame):
                         # Ajustar para coordenadas do Canvas
                         self.watermark_bbox_cache = (bbox[0] + img_x, bbox[1] + img_y, bbox[2] + img_x, bbox[3] + img_y)
 
+            # --- Desenhar Logo (Imagem) ---
+            self.logo_bbox_cache = None
+            self.logo_resize_handle_bbox = None
+            
+            if hasattr(self, 'watermark_ui') and self.watermark_ui:
+                watermark_data = self.watermark_ui.get_state()
+                if watermark_data.get("logo_path"):
+                    from modules.editar_com_legendas import VideoRenderer
+                    v_renderer = VideoRenderer(self.emoji_manager)
+                    
+                    # Desenhar logo
+                    v_renderer._draw_logo(img, watermark_data, scale, offset_x, offset_y)
+                    
+                    # BBox para interação
+                    bbox = v_renderer.get_logo_bbox(watermark_data, scale, offset_x, offset_y)
+                    if bbox:
+                        canvas_bbox = (bbox[0] + img_x, bbox[1] + img_y, bbox[2] + img_x, bbox[3] + img_y)
+                        self.logo_bbox_cache = canvas_bbox
+                        
+                        if self.selected_logo or self.dragging_logo or self.resizing_logo:
+                            draw = ImageDraw.Draw(img)
+                            draw.rectangle(bbox, outline="magenta", width=2)
+                            
+                            # Desenhar alça de redimensionamento (canto inferior direito)
+                            handle_size = 10
+                            handle_x1 = bbox[2] - handle_size
+                            handle_y1 = bbox[3] - handle_size
+                            handle_x2 = bbox[2]
+                            handle_y2 = bbox[3]
+                            
+                            draw.rectangle((handle_x1, handle_y1, handle_x2, handle_y2), fill="magenta")
+                            
+                            # Cache da alça (coordenadas do canvas)
+                            self.logo_resize_handle_bbox = (
+                                handle_x1 + img_x, 
+                                handle_y1 + img_y, 
+                                handle_x2 + img_x, 
+                                handle_y2 + img_y
+                            )
+
             self.preview_image_tk = ImageTk.PhotoImage(img)
             canvas.delete("all")
             canvas.create_image(preview_w//2, preview_h//2, image=self.preview_image_tk, anchor="center")
@@ -315,6 +364,61 @@ class Subtitles(ttk.Frame):
                 self.update_preview()
                 return
 
+        # Se não clicou em marca d'água, verificar Logo
+        if self.logo_bbox_cache:
+            # Verificar alça de redimensionamento primeiro
+            if self.logo_resize_handle_bbox:
+                hbox = self.logo_resize_handle_bbox
+                if hbox[0] <= x <= hbox[2] and hbox[1] <= y <= hbox[3]:
+                    self.resizing_logo = True
+                    self.selected_logo = True
+                    self.dragging_logo = False
+                    self.selected_subtitle_idx = None
+                    self.selected_watermark = False
+                    
+                    watermark_data = self.watermark_ui.get_state()
+                    self.initial_logo_scale = watermark_data.get("logo_scale", 0.2)
+                    self.initial_mouse_y = y
+                    
+                    self.update_preview()
+                    return
+
+            # Verificar corpo da logo
+            lbox = self.logo_bbox_cache
+            if lbox[0] <= x <= lbox[2] and lbox[1] <= y <= lbox[3]:
+                self.dragging_logo = True
+                self.selected_logo = True
+                self.resizing_logo = False
+                self.selected_subtitle_idx = None
+                self.selected_watermark = False
+                
+                watermark_data = self.watermark_ui.get_state()
+                scale = self.preview_scale_factor
+                style = self.video_borders.get_effective_style()
+                style_lower = style.lower()
+                border_enabled = "moldura" in style_lower or "black" in style_lower or "white" in style_lower or "blur" in style_lower
+                
+                if border_enabled:
+                    v_w_preview = 360.0 * 0.78
+                    v_h_preview = 640.0 * 0.70
+                    border_offset_x = (360.0 - v_w_preview) / 2
+                    border_offset_y = (640.0 - v_h_preview) / 2
+                else:
+                    border_offset_x = 0
+                    border_offset_y = 0
+                
+                click_video_x, click_video_y = canvas_para_video(x, y, self.preview_img_geometry, scale)
+                self.drag_offset_x = click_video_x - (watermark_data.get("logo_x", 50) + border_offset_x)
+                self.drag_offset_y = click_video_y - (watermark_data.get("logo_y", 50) + border_offset_y)
+                
+                self.update_preview()
+                return
+
+        self.selected_subtitle_idx = None
+        self.selected_watermark = False
+        self.selected_logo = False
+        self.update_preview()
+
         self.selected_subtitle_idx = None
         self.selected_watermark = False
         self.update_preview()
@@ -361,10 +465,42 @@ class Subtitles(ttk.Frame):
             new_video_y = new_render_y - self.drag_offset_y - border_offset_y
             
             self.watermark_ui.update_position(int(new_video_x), int(new_video_y))
+        
+        elif self.dragging_logo:
+            scale = self.preview_scale_factor
+            style = self.video_borders.get_effective_style()
+            style_lower = style.lower()
+            border_enabled = "moldura" in style_lower or "black" in style_lower or "white" in style_lower or "blur" in style_lower
+            
+            if border_enabled:
+                v_w_preview = 360.0 * 0.78
+                v_h_preview = 640.0 * 0.70
+                border_offset_x = (360.0 - v_w_preview) / 2
+                border_offset_y = (640.0 - v_h_preview) / 2
+            else:
+                border_offset_x = 0
+                border_offset_y = 0
+            
+            new_render_x, new_render_y = canvas_para_video(event.x, event.y, self.preview_img_geometry, scale)
+            new_video_x = new_render_x - self.drag_offset_x - border_offset_x
+            new_video_y = new_render_y - self.drag_offset_y - border_offset_y
+            
+            self.watermark_ui.update_logo_position(int(new_video_x), int(new_video_y))
+
+        elif self.resizing_logo:
+            # Lógica simples de redimensionamento baseada no movimento vertical do mouse
+            dy = event.y - self.initial_mouse_y
+            # Sensibilidade: 100px de movimento = 0.1 de escala
+            scale_delta = dy / 500.0
+            new_scale = self.initial_logo_scale + scale_delta
+            
+            self.watermark_ui.update_logo_scale(new_scale)
 
     def on_preview_release(self, event):
         self.dragging_subtitle_idx = None
         self.dragging_watermark = False
+        self.dragging_logo = False
+        self.resizing_logo = False
         self.update_preview()
     def get_state(self):
         return {
