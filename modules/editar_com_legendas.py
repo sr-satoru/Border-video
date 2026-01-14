@@ -322,6 +322,20 @@ class VideoRenderer:
             if final_audio:
                 final_clip = final_clip.set_audio(final_audio)
 
+            # 3. Adicionar Vídeo Final (Concatenação)
+            if watermark_data and watermark_data.get("add_final_video"):
+                video_final_path = watermark_data.get("video_path")
+                if video_final_path and os.path.exists(video_final_path):
+                    try:
+                        final_video_clip = mp.VideoFileClip(video_final_path)
+                        final_video_clip = final_video_clip.resize(newsize=(self.OUTPUT_WIDTH, self.OUTPUT_HEIGHT))
+                        
+                        # Concatenar
+                        concatenated = mp.concatenate_videoclips([final_clip, final_video_clip])
+                        final_clip = concatenated
+                    except Exception as e:
+                        print(f"Erro ao concatenar vídeo final: {e}")
+
             # Garantir que o diretório de saída exista
             os.makedirs(output_folder, exist_ok=True)
             
@@ -347,20 +361,6 @@ class VideoRenderer:
             video_resized.close()
             if background_clip:
                 background_clip.close()
-            
-            # 3. Adicionar Vídeo Final (Concatenação)
-            if watermark_data and watermark_data.get("add_final_video"):
-                video_final_path = watermark_data.get("video_path")
-                if video_final_path and os.path.exists(video_final_path):
-                    try:
-                        final_video_clip = mp.VideoFileClip(video_final_path)
-                        final_video_clip = final_video_clip.resize(newsize=(self.OUTPUT_WIDTH, self.OUTPUT_HEIGHT))
-                        
-                        # Concatenar
-                        concatenated = mp.concatenate_videoclips([final_clip, final_video_clip])
-                        final_clip = concatenated
-                    except Exception as e:
-                        print(f"Erro ao concatenar vídeo final: {e}")
 
             final_clip.close()
 
